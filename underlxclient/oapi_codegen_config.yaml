@@ -1,0 +1,5 @@
+package: underlxclient
+output: underlx_client.gen.go
+generate:
+  models: true
+  client: true

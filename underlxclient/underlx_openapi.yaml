@@ -1,0 +1,2250 @@
+openapi: 3.0.1
+info:
+  title: UnderLX API
+  description: |2-
+     ![UnderLX logo](https://blog.underlx.com/images/logo.png)
+    Part of the [UnderLX project](https://underlx.com), this API provides information about public transit networks. Like the remainder of the project, it is currently very focused on the [Lisbon Metro](https://www.metrolisboa.pt).
+    Most of the API can be used freely without providing any credentials. The UnderLX project reserves the right to throttle or outright deny service to certain users based on their IP address.
+    A small part of the API requires authentication and is currently for exclusive use of the UnderLX project.
+    The main consumer of this API is the [UnderLX Android application](https://github.com/underlx/underlx).
+    <br> The API "speaks" both JSON and [MessagePack](https://msgpack.org/). When consuming it, the `Accept` header must be set to the desired serialization format, as well as the `Content-Type` header when sending requests with a body. If it is not specified, beautified JSON is provided, which is not ideal.
+    This documentation assumes JSON is used. MessagePack request and response bodies are generally equivalent to their JSON counterparts, but there are some differences, namely, in how dates and durations are serialized.
+    <br> Some of the information provided by this API comes from the [UnderLX Open Data](https://github.com/underlx/data) project, and is provided under the [Open Database License](https://github.com/underlx/data/blob/master/LICENSE).
+    The API itself is licensed under the [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
+  termsOfService: https://underlx.com/terms
+  contact:
+    name: UnderLX Team
+    url: https://underlx.com/contact
+    email: underlx@tny.im
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: UnderLX Developer Portal
+  url: https://developer.underlx.com/
+servers:
+- url: https://api.underlx.com/v1
+tags:
+- name: announcements
+  description: Official news and social media posts
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/announcement.go
+- name: connections
+  description: Directional line segments between stations
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/connection.go
+- name: datasets
+  description: Meta-information used for data versioning
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/dataset.go
+- name: disturbances
+  description: Service disruption and degradation events
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/disturbance.go
+- name: feedback
+  description: User feedback and problem reports
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/feedback.go
+- name: gateways
+  description: Forms of real-time communication between server and clients
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/gateway.go
+- name: lines
+  description: Passenger service lines
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/line.go
+- name: line_conditions
+  description: "Supposed service conditions (number of cars per train, etc.)"
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/linecondition.go
+- name: lobbies
+  description: "Station lobbies, with one or more exits"
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/lobby.go
+- name: maps
+  description: Pointers to transit maps for human consumption
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/map.go
+- name: meta
+  description: Meta-information about the API and its state
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/meta.go
+- name: networks
+  description: Transit networks
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/network.go
+- name: pair
+  description: Authentication credentials
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/pair.go
+- name: pair_connections
+  description: Connections with external services
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/pairconnection.go
+- name: pois
+  description: Points of Interest - notable world locations
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/poi.go
+- name: stations
+  description: Transit stations
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/station.go
+- name: stats
+  description: Transit network statistics
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/stats.go
+- name: transfers
+  description: Directional connections between passenger service lines
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/transfer.go
+- name: trips
+  description: Journey in public transit
+  externalDocs:
+    description: Source code
+    url: https://github.com/underlx/disturbancesmlx/blob/master/resource/trip.go
+paths:
+  /announcements:
+    get:
+      tags:
+      - announcements
+      summary: List announcements
+      operationId: listAnnouncements
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+  /announcements/{sourceID}:
+    get:
+      tags:
+      - announcements
+      summary: List announcements of source
+      operationId: listAnnouncementsOfSource
+      parameters:
+      - name: sourceID
+        in: path
+        description: The ID of the source for which to retrieve announcements
+        required: true
+        schema:
+          type: string
+        example: pt-ml-rss
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+  /connections:
+    get:
+      tags:
+      - connections
+      summary: List connections
+      operationId: listConnections
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connection'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connection'
+  /connections/{from}/{to}:
+    get:
+      tags:
+      - connections
+      summary: Get specific connection
+      operationId: getConnection
+      parameters:
+      - name: from
+        in: path
+        description: The ID of origin station for the connection to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-bc
+      - name: to
+        in: path
+        description: The ID of target station for the connection to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-ro
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Connection'
+  /datasets:
+    get:
+      tags:
+      - datasets
+      summary: List available datasets
+      operationId: listDatasets
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dataset'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dataset'
+  /datasets/{id}:
+    get:
+      tags:
+      - datasets
+      summary: Get information about a dataset
+      operationId: getDataset
+      parameters:
+      - name: id
+        in: path
+        description: The network ID of the dataset to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+  /disturbances:
+    get:
+      tags:
+      - disturbances
+      summary: List past and/or ongoing disturbances
+      operationId: listDisturbances
+      parameters:
+      - name: omitduplicatestatus
+        in: query
+        description: Whether duplicate line status should be omitted. Duplicate line
+          status are present mainly on earlier disturbances. Should always be true.
+        schema:
+          type: boolean
+      - name: start
+        in: query
+        description: Limit returned disturbances to those after this date-time. Incompatible
+          with `filter=ongoing`
+        schema:
+          type: string
+          format: date-time
+      - name: end
+        in: query
+        description: Limit returned disturbances to those before this date-time. Incompatible
+          with `filter=ongoing`
+        schema:
+          type: string
+          format: date-time
+      - name: filter
+        in: query
+        description: "If `ongoing`, will limit returned disturbances to ongoing ones.\
+          \ Incompatible with `start` and `end`"
+        schema:
+          type: string
+          enum:
+          - all
+          - ongoing
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Disturbance'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Disturbance'
+  /disturbances/{id}:
+    get:
+      tags:
+      - disturbances
+      summary: Get specific disturbance
+      operationId: getDisturbance
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the disturbance to retrieve
+        required: true
+        schema:
+          type: string
+        example: 9b8d7a99-044e-4248-9b3c-ae98f7de38c8
+      - name: omitduplicatestatus
+        in: query
+        description: Whether duplicate line status should be omitted. Duplicate line
+          status are present mainly on earlier disturbances. Should always be true.
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Disturbance'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Disturbance'
+  /disturbances/reports:
+    post:
+      tags:
+      - disturbances
+      summary: Report service disruption
+      operationId: reportDisturbance
+      requestBody:
+        description: Report
+        content:
+          '*/*':
+            schema:
+              type: object
+              properties:
+                line:
+                  type: string
+                  description: ID of the affected line
+                  example: pt-ml-azul
+                category:
+                  type: string
+                  description: Problem category. Currently ignored
+        required: true
+      responses:
+        "200":
+          description: successful operation
+          content: {}
+      security:
+      - apiPair: []
+      x-codegen-request-body-name: body
+  /feedback:
+    post:
+      tags:
+      - feedback
+      summary: Submit feedback
+      operationId: submitFeedback
+      requestBody:
+        description: Feedback to submit
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          application/msgpack:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+        required: true
+      responses:
+        "201":
+          description: feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+      security:
+      - apiPair: []
+      x-codegen-request-body-name: body
+  /gateways:
+    get:
+      tags:
+      - gateways
+      summary: List available gateways
+      operationId: listGateways
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Gateway'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Gateway'
+  /lines:
+    get:
+      tags:
+      - lines
+      summary: List service lines
+      operationId: listLines
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Line'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Line'
+  /lines/{id}:
+    get:
+      tags:
+      - lines
+      summary: Get specific line
+      operationId: getLine
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the line to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-azul
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Line'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Line'
+  /lines/conditions:
+    get:
+      tags:
+      - line_conditions
+      summary: List past and/or current line conditions
+      operationId: listLineConditions
+      parameters:
+      - name: filter
+        in: query
+        description: "If `latest`, will limit returned conditions to current ones."
+        schema:
+          type: string
+          enum:
+          - all
+          - latest
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LineCondition'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LineCondition'
+  /lines/{lineID}/conditions:
+    get:
+      tags:
+      - line_conditions
+      summary: List past and/or current conditions for a specific line
+      operationId: listLineConditionsForLine
+      parameters:
+      - name: lineID
+        in: path
+        description: The ID of the line for which to retrieve conditions
+        required: true
+        schema:
+          type: string
+        example: pt-ml-verde
+      - name: filter
+        in: query
+        description: "If `latest`, will limit returned conditions to the current one."
+        schema:
+          type: string
+          enum:
+          - all
+          - latest
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LineCondition'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LineCondition'
+  /lines/conditions/{id}:
+    get:
+      tags:
+      - line_conditions
+      summary: Get specific line condition
+      operationId: getLineCondition
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the line condition to retrieve
+        required: true
+        schema:
+          type: string
+        example: 7f63f9df-ac76-4d88-a984-eeb04852e741
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineCondition'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/LineCondition'
+  /lobbies:
+    get:
+      tags:
+      - lobbies
+      summary: List station lobbies
+      operationId: listLobbies
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lobby'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lobby'
+  /lobbies/{id}:
+    get:
+      tags:
+      - lobbies
+      summary: Get specific lobby
+      operationId: getLobby
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the lobby to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-as-central
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lobby'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Lobby'
+  /maps:
+    get:
+      tags:
+      - maps
+      summary: List transit maps
+      operationId: listMaps
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Map'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Map'
+  /meta:
+    get:
+      tags:
+      - meta
+      summary: Obtain API endpoint meta-information
+      operationId: getMeta
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meta'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Meta'
+  /meta/backers:
+    get:
+      tags:
+      - meta
+      summary: Obtain information about project supporters and sponsors
+      operationId: getBackers
+      responses:
+        "200":
+          description: "successful operation. The reponse contains simple HTML markup,\
+            \ possibly containing image tags, with backer information, meant to be\
+            \ displayed to the user. Should be cached by the client for up to 48 hours;\
+            \ the `last-modified` header, obtained with a HEAD request, should be\
+            \ used to decide whether updating this information is necessary."
+          headers:
+            last-modified:
+              description: "Date-time, in HTTP format, of the last modification of\
+                \ this information. Should be used by clients to decide whether updating\
+                \ this information is necessary."
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+                format: binary
+    head:
+      tags:
+      - meta
+      summary: Obtain last modification time of project supporters and sponsors
+      operationId: headBackers
+      responses:
+        "200":
+          description: successful operation
+          headers:
+            last-modified:
+              description: "Date-time, in HTTP format, of the last modification of\
+                \ this information. Should be used by clients to decide whether updating\
+                \ this information is necessary."
+              schema:
+                type: string
+          content: {}
+  /networks:
+    get:
+      tags:
+      - networks
+      summary: List transit networks
+      operationId: listNetworks
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Network'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Network'
+  /networks/{id}:
+    get:
+      tags:
+      - networks
+      summary: Get specific network
+      operationId: getNetwork
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the network to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Network'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Network'
+  /pair:
+    post:
+      tags:
+      - pair
+      summary: Create authentication credentials
+      operationId: createPair
+      requestBody:
+        description: Pair request information
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nonce:
+                  type: string
+                  description: Client-generated 36 characters long random string.
+                    The use of a v4 UUID is recommended. This is used to prevent replay
+                    attacks.
+                  format: uuid
+                timestamp:
+                  type: string
+                  description: "Client-generated request timestamp, in RFC3339 format.\
+                    \ This is used to confirm that the clock of the client is sufficiently\
+                    \ synchronized"
+                  format: date-time
+                androidID:
+                  type: string
+                  description: Client device ID. This is used to prevent Sybil attacks.
+                signature:
+                  type: string
+                  description: Base64-encoded SHA256 ECDSA signature of the concatenation
+                    of `nonce` with `timestamp` and `androidID`. The private key used
+                    to generate the signature is undisclosed. This is used to prevent
+                    unauthorized creation of API credentials
+          application/msgpack:
+            schema:
+              type: object
+              properties:
+                nonce:
+                  type: string
+                  description: Client-generated 36 characters long random string.
+                    The use of a v4 UUID is recommended. This is used to prevent replay
+                    attacks.
+                  format: uuid
+                timestamp:
+                  type: string
+                  description: "Client-generated request timestamp, in RFC3339 format.\
+                    \ This is used to confirm that the clock of the client is sufficiently\
+                    \ synchronized"
+                  format: date-time
+                androidID:
+                  type: string
+                  description: Client device ID. This is used to prevent Sybil attacks.
+                signature:
+                  type: string
+                  description: Base64-encoded SHA256 ECDSA signature of the concatenation
+                    of `nonce` with `timestamp` and `androidID`. The private key used
+                    to generate the signature is undisclosed. This is used to prevent
+                    unauthorized creation of API credentials
+        required: true
+      responses:
+        "200":
+          description: pair created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    description: "API access key. Should be provided as the username\
+                      \ in exchanges that require one, like HTTP Basic Auth or the\
+                      \ MQTT CONNECT packet"
+                  secret:
+                    type: string
+                    description: "API access secret. Should be provided as the password\
+                      \ in exchanges that require one, like HTTP Basic Auth or the\
+                      \ MQTT CONNECT packet"
+                  type:
+                    type: string
+                    description: Pair type
+                  activation:
+                    type: string
+                    description: Date-time after which this pair is valid and can
+                      be used to access the API
+                    format: date-time
+            application/msgpack:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    description: "API access key. Should be provided as the username\
+                      \ in exchanges that require one, like HTTP Basic Auth or the\
+                      \ MQTT CONNECT packet"
+                  secret:
+                    type: string
+                    description: "API access secret. Should be provided as the password\
+                      \ in exchanges that require one, like HTTP Basic Auth or the\
+                      \ MQTT CONNECT packet"
+                  type:
+                    type: string
+                    description: Pair type
+                  activation:
+                    type: string
+                    description: Date-time after which this pair is valid and can
+                      be used to access the API
+                    format: date-time
+      x-codegen-request-body-name: body
+  /authtest:
+    get:
+      tags:
+      - pair
+      summary: Check API pair validity
+      operationId: checkPair
+      responses:
+        "200":
+          description: valid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: Should be `ok`
+                    example: ok
+                  key:
+                    type: string
+                    description: Echoing of the API pair key
+            application/msgpack:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: Should be `ok`
+                    example: ok
+                  key:
+                    type: string
+                    description: Echoing of the API pair key
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+      security:
+      - apiPair: []
+  /pair/connections:
+    get:
+      tags:
+      - pair_connections
+      summary: List service connections for the pair
+      operationId: listPairConnections
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairConnection'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/PairConnection'
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+      security:
+      - apiPair: []
+    post:
+      tags:
+      - pair_connections
+      summary: Connect pair to a service
+      operationId: createPairConnection
+      requestBody:
+        description: Connection request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: User-provided code for association with a service
+                deviceName:
+                  type: string
+                  description: "Human-friendly name of the client device (brand, model)"
+          application/msgpack:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: User-provided code for association with a service
+                deviceName:
+                  type: string
+                  description: "Human-friendly name of the client device (brand, model)"
+        required: true
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: Should be `connected`
+                    example: connected
+                  serviceName:
+                    type: string
+                    description: Human-friendly name of the service the user just
+                      connected with
+                    example: PosPlay
+            application/msgpack:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: Should be `connected`
+                    example: connected
+                  serviceName:
+                    type: string
+                    description: Human-friendly name of the service the user just
+                      connected with
+                    example: PosPlay
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+        "404":
+          description: a service willing to connect using the provided code was not
+            found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: failure
+            application/msgpack:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    example: failure
+      security:
+      - apiPair: []
+      x-codegen-request-body-name: body
+  /pois:
+    get:
+      tags:
+      - pois
+      summary: List points of interest
+      operationId: listPOIs
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/POI'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/POI'
+  /pois/{id}:
+    get:
+      tags:
+      - pois
+      summary: Get specific point of interest
+      operationId: getPOI
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the point of interest to retrieve
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: 89eca3cc-3d8e-49ac-a112-98a7d7c6724f
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/POI'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/POI'
+  /stations:
+    get:
+      tags:
+      - stations
+      summary: List stations
+      operationId: listStations
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Station'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Station'
+  /stations/{id}:
+    get:
+      tags:
+      - stations
+      summary: Get specific station
+      operationId: getStation
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the station to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-pe
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Station'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Station'
+  /stats:
+    get:
+      tags:
+      - stats
+      summary: Get statistics for all networks
+      operationId: getStats
+      parameters:
+      - name: start
+        in: query
+        description: Start of the range for which to compute statistics. Defaults
+          to the present moment minus 7 days
+        schema:
+          type: string
+          format: date-time
+      - name: end
+        in: query
+        description: End of the range for which to compute statistics. Defaults to
+          the present moment
+        schema:
+          type: string
+          format: date-time
+      - name: type
+        in: query
+        description: Whether to consider unofficial disturbances in the computations.
+          Defaults to official only.
+        schema:
+          type: string
+          enum:
+          - official
+          - unofficial
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Stats'
+                description: Map indexed by network ID containing statistics for each
+                  network
+            application/msgpack:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Stats'
+                description: Map indexed by network ID containing statistics for each
+                  network
+  /stats/{networkID}:
+    get:
+      tags:
+      - stats
+      summary: Get statistics for specific network
+      operationId: getStatsForNetwork
+      parameters:
+      - name: networkID
+        in: path
+        description: The ID of the network for which to retrieve stats
+        required: true
+        schema:
+          type: string
+        example: pt-ml
+      - name: start
+        in: query
+        description: Start of the range for which to compute statistics. Defaults
+          to the present moment minus 7 days
+        schema:
+          type: string
+          format: date-time
+      - name: end
+        in: query
+        description: End of the range for which to compute statistics. Defaults to
+          the present moment
+        schema:
+          type: string
+          format: date-time
+      - name: type
+        in: query
+        description: Whether to consider unofficial disturbances in the computations.
+          Defaults to official only.
+        schema:
+          type: string
+          enum:
+          - official
+          - unofficial
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Stats'
+  /transfers:
+    get:
+      tags:
+      - transfers
+      summary: List transfers
+      operationId: listTransfers
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transfer'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transfer'
+  /transfers/{stationID}/{fromID}/{toID}:
+    get:
+      tags:
+      - transfers
+      summary: Get specific transfer
+      operationId: getTransfer
+      parameters:
+      - name: stationID
+        in: path
+        description: The ID of the station for the transfer to retrieve
+        required: true
+        schema:
+          type: string
+        example: pt-ml-am
+      - name: fromID
+        in: path
+        description: The ID of the line from which the transfer to retrieve originates
+        required: true
+        schema:
+          type: string
+        example: pt-ml-verde
+      - name: toID
+        in: path
+        description: The ID of the line to which the transfer to retrieve goes
+        required: true
+        schema:
+          type: string
+        example: pt-ml-vermelha
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+  /trips:
+    get:
+      tags:
+      - trips
+      summary: List trips made by the user
+      operationId: listMyTrips
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+            application/msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+        "400":
+          description: Bad request. This is most likely due to an invalid trip
+          content: {}
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+      security:
+      - apiPair: []
+    put:
+      tags:
+      - trips
+      summary: Edit user trip
+      operationId: editMyTrip
+      requestBody:
+        description: Edited trip. Some fields will be overwritten by the server
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          application/msgpack:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "200":
+          description: trip edited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        "400":
+          description: Bad request. This is most likely due to an invalid trip
+          content: {}
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+        "404":
+          description: trip not found or not made by the user
+          content: {}
+      security:
+      - apiPair: []
+      x-codegen-request-body-name: body
+    post:
+      tags:
+      - trips
+      summary: Submit trip
+      operationId: submitTrip
+      requestBody:
+        description: Trip to submit. Some fields will be overwritten by the server
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+          application/msgpack:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "201":
+          description: trip submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+      security:
+      - apiPair: []
+      x-codegen-request-body-name: body
+  /trips/{id}:
+    get:
+      tags:
+      - trips
+      summary: Get specific trip made by the user
+      operationId: getMyTrip
+      parameters:
+      - name: id
+        in: path
+        description: The ID of the trip to retrieve
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+            application/msgpack:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        "401":
+          description: "unauthorized: invalid credentials or missing authentication\
+            \ headers"
+          content: {}
+        "404":
+          description: trip not found or not made by the user
+          content: {}
+      security:
+      - apiPair: []
+components:
+  schemas:
+    Announcement:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+        title:
+          type: string
+        body:
+          type: string
+        imageURL:
+          type: string
+          format: url
+        url:
+          type: string
+          format: url
+        source:
+          type: string
+          description: ID of the source of this information
+        network:
+          type: string
+          description: ID of the network this announcement pertains to
+    Connection:
+      type: object
+      properties:
+        from:
+          type: string
+          description: ID of the station this connection originates from
+          example: pt-ml-po
+        to:
+          type: string
+          description: ID of the station this connection ends at
+          example: pt-ml-af
+        typWaitS:
+          type: integer
+          description: Typical waiting seconds. The average time users are waiting
+            for a vehicle at `from` when going in the direction of `to`
+        typStopS:
+          type: integer
+          description: Typical stop seconds. The average time vehicles are stopping
+            by `from` when going in the direction of `to`
+        typS:
+          type: integer
+          description: Typical seconds. The average time it takes for a vehicle to
+            go through this connection
+        worldLength:
+          type: integer
+          description: The length of this connection in meters
+          example: 732
+    Dataset:
+      type: object
+      properties:
+        network:
+          type: string
+          description: ID of the network covered by this dataset
+          example: pt-ml
+        version:
+          type: string
+          description: "Version of the dataset. Usually the date of the last modification,\
+            \ but this is not guaranteed to be the case forever."
+          example: 2019-09-20T15:28:32+01:00
+        authors:
+          type: array
+          description: List of authors of this dataset
+          items:
+            type: string
+    Disturbance:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique disturbance ID in the UnderLX system
+          format: uuid
+        official:
+          type: boolean
+          description: Whether this disturbance was confirmed by official sources
+        oStartTime:
+          type: string
+          description: Official start time. Invalid if the disturbance is not official
+          format: date-time
+        oEndTime:
+          type: string
+          description: Official end time. Invalid if the disturbance is not official
+            or if it is still ongoing
+          format: date-time
+        oEnded:
+          type: boolean
+          description: "Whether the disturbance has ended, according to official sources.\
+            \ False if the disturbance is still ongoing"
+        startTime:
+          type: string
+          description: Disturbance start time. Always a valid date-time
+          format: date-time
+        endTime:
+          type: string
+          description: Disturbance end time. Invalid if the disturbance is still ongoing
+          format: date-time
+        ended:
+          type: boolean
+          description: Whether the disturbance has ended
+        description:
+          type: string
+          description: Disturbance for the description according to the sources. Usually
+            corresponds to the first status of the disturbance
+        notes:
+          type: string
+          description: "Notes manually added by the UnderLX team. May contain simple\
+            \ HTML markup, including image tags."
+        network:
+          type: string
+          description: ID of the network affected by this disturbance
+          example: pt-ml
+        line:
+          type: string
+          description: ID of the line affected by this disturbance
+          example: pt-ml-amarela
+        categories:
+          type: array
+          description: Categories automatically assigned by UnderLX
+          items:
+            type: string
+            enum:
+            - SIGNAL_FAILURE
+            - TRAIN_FAILURE
+            - POWER_OUTAGE
+            - 3RD_PARTY_FAULT
+            - PASSENGER_INCIDENT
+            - STATION_ANOMALY
+            - COMMUNITY_REPORTED
+        statuses:
+          type: array
+          description: Line statuses
+          items:
+            $ref: '#/components/schemas/LineStatus'
+      description: A disturbance is a service disruption or degradation events signalled
+        by one or more line status indicative of bad service.
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Feedback UUID as generated by the client
+          format: uuid
+        time:
+          type: string
+          description: Time at which feedback was provided
+          format: date-time
+        type:
+          type: string
+          description: The type of feedback
+          enum:
+          - s2ls-incorrect-detection
+        contents:
+          type: string
+          description: Arbitrary feedback data whose semantics depend on `type`
+    LineStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique line status ID in the UnderLX system
+          format: uuid
+        time:
+          type: string
+          description: Time at which the line assumed this status (or at which UnderLX
+            received this status for the line)
+          format: date-time
+        downtime:
+          type: boolean
+          description: Whether this status represents a disruption in the passenger
+            service
+        status:
+          type: string
+          description: Line status as produced/captured
+          example: "Devido a avaria na sinalizaÃ§Ã£o estÃ¡ interrompida a circulaÃ\
+            §Ã£o na linha entre as estaÃ§Ãµes  Odivelas e Lumiar. NÃ£o Ã© possÃ­vel\
+            \ prever a duraÃ§Ã£o da interrupÃ§Ã£o, que poderÃ¡ ser prolongada. Pedimos\
+            \ desculpa pelo incÃ³modo causado"
+        msgType:
+          type: string
+          description: Status type as automatically identified from `status`. Can
+            be used to facilitate automated translation of statuses by the client.
+          example: ML_SIGNAL_BETWEEN_LONGHALT
+        source:
+          type: string
+          description: Internal ID of the status source in the UnderLX system
+          example: mlxscraper-pt-ml
+        officialSource:
+          type: boolean
+          description: Whether the `source` is considered official
+    Line:
+      allOf:
+      - type: object
+        properties:
+          id:
+            type: string
+            description: Unique line ID in the UnderLX system
+            example: pt-ml-azul
+          name:
+            type: string
+            description: Main human-friendly name of the line
+            example: Azul
+          color:
+            type: string
+            description: "Color associated with this line, in hexadecimal RRGGBB format."
+            example: 5082C3
+          typCars:
+            type: integer
+            description: Typical number of cars for vehicles performing service in
+              this line
+            example: 6
+          order:
+            type: integer
+            description: "Value used for sorting this line next to other lines of\
+              \ the same network, when displayed to users"
+            example: 10
+          externalID:
+            type: string
+            description: "ID of this line in 3rd-party systems, such as the transit\
+              \ operator's system"
+            example: A
+          network:
+            type: string
+            description: ID of the network this line belongs to
+            example: pt-ml
+          stations:
+            type: array
+            description: "IDs of stations that are part of this line, in sequential\
+              \ order"
+            items:
+              type: string
+          schedule:
+            type: array
+            description: Schedules defining the opening time of this line
+            items:
+              $ref: '#/components/schemas/Schedule'
+          worldPaths:
+            type: array
+            description: Paths of the line in the real world. Some lines have multiple
+              paths because of e.g. each direction taking a slightly different route.
+            items:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: ID of the path
+                  example: pt-ml-azul-rb
+                path:
+                  type: array
+                  description: Latitude-longitude pairs defining the path.
+                  items:
+                    type: array
+                    example:
+                    - 38.719805
+                    - -9.155609
+                    items:
+                      type: number
+                      format: float
+      - $ref: '#/components/schemas/Localizable'
+    LineCondition:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique line condition ID in the UnderLX system
+          format: uuid
+        time:
+          type: string
+          description: Time at which this condition was assumed
+          format: date-time
+        trainCars:
+          type: integer
+          description: "Supposed number of cars for trains performing passenger service\
+            \ in the line. If zero, there's no information or there is no passenger\
+            \ service on the line"
+        trainFrequency:
+          type: string
+          description: Target time interval between trains performing passenger service
+            in the line
+          example: 4m30s
+        line:
+          type: string
+          description: ID of the line this condition applies to
+          example: pt-ml-verde
+        source:
+          type: string
+          description: Internal ID of the condition source in the UnderLX system
+    Lobby:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique lobby ID in the UnderLX system
+        name:
+          type: string
+          description: Human-friendly lobby name
+        network:
+          type: string
+          description: ID of the network this lobby belongs to
+          example: pt-ml
+        station:
+          type: string
+          description: ID of the station this lobby belongs to
+        exits:
+          type: array
+          description: Station entrances that lead to this lobby
+          items:
+            $ref: '#/components/schemas/StationExit'
+        schedule:
+          type: array
+          description: Schedules defining the opening time of this lobby
+          items:
+            $ref: '#/components/schemas/Schedule'
+    StationExit:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID of the station exit in the UnderLX system
+        worldCoord:
+          type: array
+          description: Latitude-longitude pair describing the real world position
+            of the exit
+          example:
+          - 38.76845
+          - -9.12848
+          items:
+            type: number
+            format: float
+        streets:
+          type: array
+          description: Names of nearby streets and places
+          items:
+            type: string
+        type:
+          type: string
+          description: The type of exit
+          enum:
+          - stairs
+          - lift
+          - ramp
+          - escalator
+    Meta:
+      type: object
+      properties:
+        supported:
+          type: boolean
+          description: "True if this API endpoint is still maintained and not deprecated.\
+            \ If false, clients must refrain from using this endpoint, and update\
+            \ their systems to use a supported endpoint, and/or inform the end user\
+            \ to update their client software, and/or announce service deprecation."
+        up:
+          type: boolean
+          description: "True if this API endpoint is operating normally. If false,\
+            \ clients must refrain from using this endpoint, and inform the user of\
+            \ the unavailability of online services."
+        minAndroidClient:
+          type: integer
+          description: "Minimum build version of the UnderLX Android client allowed\
+            \ to use this endpoint. If the build number is below this value, the client\
+            \ must refrain from using this endpoint, and tell the user to update the\
+            \ client."
+        motd:
+          type: object
+          properties:
+            html:
+              type: object
+              additionalProperties:
+                type: string
+              description: |-
+                Map of language codes to strings, providing translations for each locale. Strings may contain simple HTML markup, possibly including image tags.
+                If a translation is not available for the relevant locale, the one specified by `mainLocale` should be used.
+            mainLocale:
+              type: string
+              description: "Key of the `html` to use, when a translation is not available\
+                \ for the relevant locale."
+            priority:
+              type: integer
+              description: How prominently the MOTD should be displayed to the user.
+                Lower values signify higher priority and prominence.
+          description: "The endpoint's \"Message of the day\". This is a localized\
+            \ string meant to be displayed to the user, if possible."
+    Network:
+      allOf:
+      - type: object
+        properties:
+          id:
+            type: string
+            description: Unique network ID in the UnderLX system
+            example: pt-ml
+          name:
+            type: string
+            description: Main human-friendly name of the transit network
+            example: Metro de Lisboa
+          typCars:
+            type: integer
+            description: Typical number of cars for vehicles performing service in
+              this network
+            example: 6
+          holidays:
+            type: array
+            description: |-
+              List of holidays observed by this network, as days of the year (January 1st: 1; December 31st: 365/366).
+              This information is needed to correctly operate with schedules.
+            items:
+              type: integer
+          openTime:
+            type: string
+            description: DEPRECATED - use schedules. Typical opening time of the network
+          duration:
+            type: string
+            description: DEPRECATED - use schedules. Typical opening period duration
+              of the network
+          timezone:
+            type: string
+            description: "Timezone of this network, used when operating with schedules"
+            example: Europe/Lisbon
+          newsURL:
+            type: string
+            description: DEPRECATED - use announcements instead
+          lines:
+            type: array
+            description: IDs of lines pertaining to this network
+            items:
+              type: string
+              example: pt-ml-azul
+          stations:
+            type: array
+            description: IDs of stations pertaining to this network
+            items:
+              type: string
+              example: pt-ml-or
+          schedule:
+            type: array
+            description: Schedules defining the opening time of this network
+            items:
+              $ref: '#/components/schemas/Schedule'
+      - $ref: '#/components/schemas/Localizable'
+    PairConnection:
+      type: object
+      properties:
+        service:
+          type: string
+          description: ID of the external service in the UnderLX system
+          example: posplay
+        serviceName:
+          type: string
+          description: Human-friendly name of the external service
+          example: PosPlay
+        creationTime:
+          type: string
+          description: Time of creation of this connection
+          format: date-time
+        extra:
+          type: object
+          properties: {}
+          description: Extra service-specific information about the connection
+    POI:
+      allOf:
+      - type: object
+        properties:
+          id:
+            type: string
+            description: Unique point of Interest ID in the UnderLX system
+            format: uuid
+          type:
+            type: string
+            description: Type/category of point of interest
+            enum:
+            - dinning
+            - police
+            - fire-station
+            - sports
+            - school
+            - university
+            - library
+            - airport
+            - embassy
+            - church
+            - business
+            - zoo
+            - park
+            - hospital
+            - monument
+            - museum
+            - shopping-center
+            - health-center
+            - bank
+            - viewpoint
+            - casino
+            - theater
+            - show-room
+            - organization
+            - transportation-hub
+            - public-space
+            - government
+            - market
+            - public-service
+            - institute
+            - post-office
+            - cemetery
+            - hotel
+          worldCoord:
+            type: array
+            description: Latitude-longitude pair describing the real world position
+              of the point of interest
+            example:
+            - 38.744876
+            - -9.138903
+            items:
+              type: number
+              format: float
+          webURL:
+            type: string
+            description: URL of 3rd-party web page associated with this point of interest
+      - $ref: '#/components/schemas/Localizable'
+    Station:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique station ID in the UnderLX system
+          example: pt-ml-pe
+        name:
+          type: string
+          description: Human-friendly station name
+          example: PraÃ§a de Espanha
+        altNames:
+          type: array
+          description: Alternative names that users may use when referring to this
+            station
+          items:
+            type: string
+            example: PalhavÃ£
+        tags:
+          type: array
+          description: "List of tags that describe the station and its features, including\
+            \ connections to other transportation services, amenities and accessibilities"
+          items:
+            $ref: '#/components/schemas/StationTag'
+        lowTags:
+          type: array
+          description: "List of lower-priority tags. The complete list of tags, without\
+            \ duplicates, can be obtained by simply appending `lowTags` to `tags`"
+          items:
+            $ref: '#/components/schemas/StationTag'
+        network:
+          type: string
+          description: ID of the network this station belongs to
+          example: pt-ml
+        lines:
+          type: array
+          description: IDs of lines serving this station
+          items:
+            type: string
+            example: pt-ml-azul
+        features:
+          type: object
+          properties:
+            lift:
+              type: boolean
+            bus:
+              type: boolean
+            boat:
+              type: boolean
+            train:
+              type: boolean
+            airport:
+              type: boolean
+          description: DEPRECATED - use `tags` and `lowTags`
+        lobbies:
+          type: array
+          description: IDs of the lobbies of this station
+          items:
+            type: string
+            example: pt-ml-pe-norte
+        pois:
+          type: array
+          description: IDs of the POIs associated with this station
+          items:
+            type: string
+            format: uuid
+        triviaURLs:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Maps locales to relative URLs of HTML files, containing trivia for this station.
+            URLs are relative to the API endpoint. The HTML markup is simple, possibly including image tags
+        connURLs:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: object
+              properties: {}
+          description: |-
+            Maps connection types (bike, boat, bus, park, train) to maps, that in turn, map locales to relative URLs of HTML files, which contain connection information for this station.
+            URLs are relative to the API endpoint. The HTML markup is simple, possibly including image tags
+        wiFiAPs:
+          type: array
+          description: "Wi-Fi Acess Points present at this station. Used by S2LS,\
+            \ the Segvault Subway Location System."
+          items:
+            type: object
+            properties:
+              bssid:
+                type: string
+                description: BSSID of the access point
+                example: 24:a4:3c:04:1d:5b
+              line:
+                type: string
+                description: DEPRECATED
+    StationTag:
+      type: string
+      enum:
+      - a_baby
+      - a_store
+      - a_wc
+      - a_wifi
+      - c_airport
+      - c_bike
+      - c_boat
+      - c_bus
+      - c_parking
+      - c_taxi
+      - c_train
+      - m_escalator_platform
+      - m_escalator_surface
+      - m_lift_platform
+      - m_lift_surface
+      - m_platform
+      - m_stepfree
+      - s_client
+      - s_info
+      - s_lostfound
+      - s_navegante
+      - s_ticket1
+      - s_ticket2
+      - s_ticket3
+      - s_urgent_pass
+    Stats:
+      type: object
+      properties:
+        lineStats:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              availability:
+                type: number
+                description: Fraction of time this line operated without issues in
+                  the relevant time frame
+                format: float
+              avgDistDuration:
+                type: string
+                description: "Average disturbance duration in the relevant time frame,\
+                  \ in HH`h`mm`m`SS`s` format"
+          description: "Map containing statistics for each line, indexed by line ID"
+        lastDisturbance:
+          type: string
+          description: Date-time of the end of last disturbance
+          format: date-time
+        curOnInTransit:
+          type: integer
+          description: "Approximate number of UnderLX users currently online and in\
+            \ transit. This number is always relative to the present moment, independently\
+            \ of the request parameters"
+    Transfer:
+      type: object
+      properties:
+        station:
+          type: string
+          description: ID of the station where this transfer takes place
+          example: pt-ml-am
+        from:
+          type: string
+          description: ID of the line this transfer originates from
+          example: pt-ml-verde
+        to:
+          type: string
+          description: ID of the line this transfer ends at
+          example: pt-ml-vermelha
+        typS:
+          type: integer
+          description: Typical seconds. The average time it takes for a user to go
+            through this transfer
+          example: 463
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Trip UUID as generated by the client
+          format: uuid
+        startTime:
+          type: string
+          description: Date-time at which the trip started
+          format: date-time
+        endTime:
+          type: string
+          description: Date-time at which the trip ended
+          format: date-time
+        submitTime:
+          type: string
+          description: Date-time at which the trip was submitted
+          format: date-time
+        editTime:
+          type: string
+          description: Date-time at which the trip was edited. Invalid if `edited`
+            is false
+          format: date-time
+        edited:
+          type: boolean
+          description: Whether the trip was edited
+        userConfirmed:
+          type: boolean
+          description: Whether the trip data was confirmed by the user
+        uses:
+          type: array
+          description: Station uses defining the path the user took
+          items:
+            $ref: '#/components/schemas/StationUse'
+    StationUse:
+      type: object
+      properties:
+        station:
+          type: string
+          description: ID of the station the user used
+          example: pt-ml-am
+        entryTime:
+          type: string
+          description: Date-time at which the user entered the station
+          format: date-time
+        leaveTime:
+          type: string
+          description: Date-time at which the user left the station
+          format: date-time
+        type:
+          type: string
+          description: The type of station use
+          enum:
+          - NETWORK_ENTRY
+          - NETWORK_EXIT
+          - INTERCHANGE
+          - GONE_THROUGH
+          - VISIT
+        manual:
+          type: boolean
+          description: Whether this use is part of a user-made edit of a trip
+        sourceLine:
+          type: string
+          description: ID of the line the line change originated from. Only valid
+            if `type` is INTERCHANGE
+        targetLine:
+          type: string
+          description: ID of the target line for the line change. Only valid if `type`
+            is INTERCHANGE
+    Map:
+      required:
+      - type
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - world-map
+          - html
+      description: |-
+        Maps are used to indicate clients which human-friendly transit maps exist, how to obtain and how to render them.
+        Do not confuse maps with datasets or networks. Maps are not explicitly associated to either of those, but dataset versioning indirectly controls map updates, in the sense that the client must invalidate the map cache when updating datasets.
+      discriminator:
+        propertyName: type
+    world-map:
+      title: MapWorldMap
+      allOf:
+      - $ref: '#/components/schemas/Map'
+    html:
+      title: MapHTML
+      allOf:
+      - $ref: '#/components/schemas/Map'
+      - type: object
+        properties:
+          url:
+            type: string
+            description: "URL of the HTML file containing the map. If the URL is relative,\
+              \ it is relative to the API endpoint"
+          cache:
+            type: boolean
+            description: "Whether the map should be cached by the client. If false,\
+              \ the client must navigate to URL every time the map is displayed"
+          wideViewport:
+            type: boolean
+            description: "Specific to clients that display the map in an Android WebView,\
+              \ this specifies whether the WebView should have a wide viewport."
+    Gateway:
+      required:
+      - protocol
+      type: object
+      properties:
+        protocol:
+          type: string
+          enum:
+          - mqtt
+      description: |-
+        Gateways are UnderLX's form of real-time communication between server and clients.
+        They are used to support communication paradigms that are poorly supported by conventional HTTP, such as publish-subscribe or unreliable connections (as in UDP).
+      discriminator:
+        propertyName: protocol
+    mqtt:
+      title: MQTTGateway
+      allOf:
+      - $ref: '#/components/schemas/Gateway'
+      - type: object
+        properties:
+          host:
+            type: string
+            description: Host of the MQTT broker
+            example: api.underlx.com
+          port:
+            type: integer
+            description: Port of the MQTT broker
+          pVer:
+            type: string
+            description: MQTT protocol version
+            example: 3.1.1
+          tls:
+            type: boolean
+            description: Whether the broker expects TLS connections
+    Localizable:
+      type: object
+      properties:
+        mainLocale:
+          type: string
+          description: "Key of the name to use in the `names` map, when no specific\
+            \ translation is available for the current locale"
+          example: pt
+        names:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Map of language codes to names providing name translations\
+            \ for each locale. If a translation is not available for the relevant\
+            \ locale, the one specified by `mainLocale` should be used."
+          example:
+            pt: Azul
+            en: Blue
+            fr: Bleue
+    Schedule:
+      type: object
+      properties:
+        holiday:
+          type: boolean
+          description: "Whether this schedule applies to holidays, or is an exception.\
+            \ See `day` for more information."
+        day:
+          type: integer
+          description: |-
+            Day of week (0-6: Sunday-Saturday) or day of year (January 1st: 1; December 31st: 365/366) this schedule applies to.
+            - If `holiday` is false, this schedule applies to the day of the week specified by `day`;
+            - If `holiday` is true and `day` is zero, this schedule applies to holidays, as defined in the holidays list of the relevant network;
+            - If `holiday` is true and `day` is not zero, this is a one-off schedule for a specific day of the year, and `day` should be interpreted as the day of the year. If we are past that day in the current year, this should be interpreted as the Nth day of the next year.
+        open:
+          type: boolean
+          description: Whether the lobby/line/network will be open on this day
+        openTime:
+          type: string
+          description: "Start of the opening period for this day, in HH`:`mm`:`SS\
+            \ format. The timezone is that of the relevant transit network"
+          example: 06:30:00
+        duration:
+          type: string
+          description: "Duration of the opening period for this day, in HH`h`mm`m`SS`s`\
+            \ format. May extend past the midnight of this day"
+          example: 18h30m0s
+    GenericUnauthorizedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: string
+            example: Unauthorized
+  responses:
+    Unauthorized:
+      description: "unauthorized: invalid credentials or missing authentication headers"
+      content: {}
+  securitySchemes:
+    apiPair:
+      type: http
+      scheme: basic
+x-original-swagger-version: "2.0"
