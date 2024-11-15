@@ -98,6 +98,11 @@ func (b *BskyClient) Post(ctx context.Context, post bsky.FeedPost) (string, stri
 }
 
 func (b *BskyClient) UploadImage(ctx context.Context, client *http.Client, imageURL string) (*util.LexBlob, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.connectIfNeeded(ctx)
+
 	getImage, err := getImageAsBuffer(client, imageURL)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -105,7 +110,7 @@ func (b *BskyClient) UploadImage(ctx context.Context, client *http.Client, image
 
 	resp, err := atproto.RepoUploadBlob(ctx, b.client, bytes.NewReader(getImage))
 	if err != nil {
-		return nil, err
+		return nil, stacktrace.Propagate(err, "")
 	}
 
 	blob := util.LexBlob{

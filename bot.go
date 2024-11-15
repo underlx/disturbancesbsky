@@ -164,25 +164,33 @@ func (b *Bot) tick(ctx context.Context) error {
 			// new disturbance
 			// send posts for all statuses
 			knownDisturbance.ID = disturbance.Id.String()
+
+			// add to storage model
+			b.model.KnownDisturbances = append(b.model.KnownDisturbances, knownDisturbance)
+			knownDisturbanceIdx := len(b.model.KnownDisturbances) - 1
+
+			// save early, save often, so we don't miss sending a disturbance if we fail to send any posts
+			err = b.storage.Put(b.model)
+			if err != nil {
+				return stacktrace.Propagate(err, "")
+			}
+
 			for _, status := range lo.FromPtr(disturbance.Statuses) {
 				if !lo.FromPtr(status.OfficialSource) {
 					continue
 				}
 
-				knownStatus, err := b.sendPostForStatus(ctx, knownDisturbance.KnownStatuses, disturbance, status)
+				knownStatus, err := b.sendPostForStatus(ctx, b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses, disturbance, status)
 				if err != nil {
 					return stacktrace.Propagate(err, "")
 				}
-				knownDisturbance.KnownStatuses = append(knownDisturbance.KnownStatuses, knownStatus)
-			}
+				b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses = append(b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses, knownStatus)
 
-			// add to storage model
-			b.model.KnownDisturbances = append(b.model.KnownDisturbances, knownDisturbance)
-
-			// save early, save often, so we don't repeat messages
-			err = b.storage.Put(b.model)
-			if err != nil {
-				return stacktrace.Propagate(err, "")
+				// save early, save often, so we don't repeat messages
+				err = b.storage.Put(b.model)
+				if err != nil {
+					return stacktrace.Propagate(err, "")
+				}
 			}
 		}
 
