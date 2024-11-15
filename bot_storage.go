@@ -9,7 +9,7 @@ import (
 )
 
 type BotStorageModel struct {
-	KnownDisturbances []KnownDisturbance
+	KnownDisturbances map[string]KnownDisturbance
 }
 
 type KnownDisturbance struct {
@@ -38,7 +38,7 @@ func (b *BotStorage) Get() (BotStorageModel, error) {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return BotStorageModel{
-				KnownDisturbances: []KnownDisturbance{},
+				KnownDisturbances: make(map[string]KnownDisturbance),
 			}, nil
 		}
 		return BotStorageModel{}, stacktrace.Propagate(err, "")

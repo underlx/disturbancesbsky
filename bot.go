@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -77,46 +77,52 @@ func (b *Bot) tick(ctx context.Context) error {
 		return stacktrace.NewError("failed to fetch ongoing disturbances: %s", disturbances.Status())
 	}
 
-	knownDisturbancesSet := make(map[string]KnownDisturbance)
 	seenDisturbancesSet := make(map[string]struct{})
-	for _, knownDisturbance := range b.model.KnownDisturbances {
-		knownDisturbancesSet[knownDisturbance.ID] = knownDisturbance
+
+	for _, disturbance := range lo.FromPtr(disturbances.JSON200) {
+		if !lo.FromPtr(disturbance.Official) {
+			continue
+		}
+
+		seenDisturbancesSet[disturbance.Id.String()] = struct{}{}
 	}
 
-	for i := 0; i < len(b.model.KnownDisturbances); i++ {
-		knownDisturbance := b.model.KnownDisturbances[i]
-		if _, ok := seenDisturbancesSet[knownDisturbance.ID]; !ok {
+	for knownDisturbanceID := range b.model.KnownDisturbances {
+		if _, ok := seenDisturbancesSet[knownDisturbanceID]; !ok {
 			// disturbance disappeared, fetch it and post any statuses we haven't posted yet
-			disturbanceResp, err := b.underlxClient.GetDisturbanceWithResponse(ctx, knownDisturbance.ID, &underlxclient.GetDisturbanceParams{
+			disturbanceResp, err := b.underlxClient.GetDisturbanceWithResponse(ctx, knownDisturbanceID, &underlxclient.GetDisturbanceParams{
 				Omitduplicatestatus: lo.ToPtr(true),
 			})
 			if err != nil {
 				return stacktrace.Propagate(err, "")
 			}
 			if disturbanceResp.StatusCode() != http.StatusOK {
-				return stacktrace.NewError("failed to fetch disturbance %s: %s", knownDisturbance.ID, disturbanceResp.Status())
+				return stacktrace.NewError("failed to fetch disturbance %s: %s", knownDisturbanceID, disturbanceResp.Status())
 			}
 
 			disturbance := lo.FromPtr(disturbanceResp.JSON200)
 
 			updatedStatuses := lo.FromPtr(disturbance.Statuses)
-			newStatuses := updatedStatuses[min(len(updatedStatuses), len(knownDisturbance.KnownStatuses)):]
+			knownStatuses := b.model.KnownDisturbances[knownDisturbanceID].KnownStatuses
+			newStatuses := updatedStatuses[min(len(updatedStatuses), len(knownStatuses)):]
 
 			for _, newStatus := range newStatuses {
 				if !lo.FromPtr(newStatus.OfficialSource) {
 					continue
 				}
 
-				knownStatus, err := b.sendPostForStatus(ctx, knownDisturbance.KnownStatuses, disturbance, newStatus)
+				knownStatus, err := b.sendPostForStatus(ctx, knownStatuses, disturbance, newStatus)
 				if err != nil {
 					return stacktrace.Propagate(err, "")
 				}
 				// it's important that we do this despite deleting the disturbance from the storage right after,
 				// because otherwise sendPostForStatus won't be able to chain the replies properly
-				knownDisturbance.KnownStatuses = append(knownDisturbance.KnownStatuses, knownStatus)
+				knownStatuses = append(knownStatuses, knownStatus)
+				d := b.model.KnownDisturbances[knownDisturbanceID]
+				d.KnownStatuses = knownStatuses
+				b.model.KnownDisturbances[knownDisturbanceID] = d
 
 				// save early, save often, so we don't repeat messages
-				b.model.KnownDisturbances[i] = knownDisturbance
 				err = b.storage.Put(b.model)
 				if err != nil {
 					return stacktrace.Propagate(err, "")
@@ -124,8 +130,7 @@ func (b *Bot) tick(ctx context.Context) error {
 			}
 
 			// remove from storage model
-			b.model.KnownDisturbances = slices.Delete(b.model.KnownDisturbances, i, i+1)
-			i--
+			delete(b.model.KnownDisturbances, knownDisturbanceID)
 
 			// save early, save often, so we don't repeat messages
 			err = b.storage.Put(b.model)
@@ -139,7 +144,7 @@ func (b *Bot) tick(ctx context.Context) error {
 		if !lo.FromPtr(disturbance.Official) {
 			continue
 		}
-		if knownDisturbance, ok := knownDisturbancesSet[disturbance.Id.String()]; ok {
+		if knownDisturbance, ok := b.model.KnownDisturbances[disturbance.Id.String()]; ok {
 			// check if there are any new statuses
 			updatedStatuses := lo.FromPtr(disturbance.Statuses)
 			newStatuses := updatedStatuses[min(len(updatedStatuses), len(knownDisturbance.KnownStatuses)):]
@@ -153,6 +158,7 @@ func (b *Bot) tick(ctx context.Context) error {
 					return stacktrace.Propagate(err, "")
 				}
 				knownDisturbance.KnownStatuses = append(knownDisturbance.KnownStatuses, knownStatus)
+				b.model.KnownDisturbances[disturbance.Id.String()] = knownDisturbance
 
 				// save early, save often, so we don't repeat messages
 				err = b.storage.Put(b.model)
@@ -166,8 +172,7 @@ func (b *Bot) tick(ctx context.Context) error {
 			knownDisturbance.ID = disturbance.Id.String()
 
 			// add to storage model
-			b.model.KnownDisturbances = append(b.model.KnownDisturbances, knownDisturbance)
-			knownDisturbanceIdx := len(b.model.KnownDisturbances) - 1
+			b.model.KnownDisturbances[knownDisturbance.ID] = knownDisturbance
 
 			// save early, save often, so we don't miss sending a disturbance if we fail to send any posts
 			err = b.storage.Put(b.model)
@@ -180,11 +185,12 @@ func (b *Bot) tick(ctx context.Context) error {
 					continue
 				}
 
-				knownStatus, err := b.sendPostForStatus(ctx, b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses, disturbance, status)
+				knownStatus, err := b.sendPostForStatus(ctx, knownDisturbance.KnownStatuses, disturbance, status)
 				if err != nil {
 					return stacktrace.Propagate(err, "")
 				}
-				b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses = append(b.model.KnownDisturbances[knownDisturbanceIdx].KnownStatuses, knownStatus)
+				knownDisturbance.KnownStatuses = append(knownDisturbance.KnownStatuses, knownStatus)
+				b.model.KnownDisturbances[knownDisturbance.ID] = knownDisturbance
 
 				// save early, save often, so we don't repeat messages
 				err = b.storage.Put(b.model)
@@ -193,8 +199,6 @@ func (b *Bot) tick(ctx context.Context) error {
 				}
 			}
 		}
-
-		seenDisturbancesSet[disturbance.Id.String()] = struct{}{}
 	}
 
 	return nil
@@ -276,6 +280,8 @@ func (b *Bot) sendPostForStatus(ctx context.Context, sentStatuses []KnownStatus,
 	if err != nil {
 		return KnownStatus{}, stacktrace.Propagate(err, "")
 	}
+
+	log.Println("Created post with URI", uri)
 
 	return KnownStatus{
 		ID:          status.Id.String(),
