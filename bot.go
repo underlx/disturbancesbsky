@@ -25,11 +25,12 @@ type Bot struct {
 	storage             *BotStorage
 	timestampLocation   *time.Location
 	websiteLinkTemplate string
+	postLangs           []string
 
 	model BotStorageModel
 }
 
-func NewBot(underlxClient *underlxclient.ClientWithResponses, bskyClient *BskyClient, storage *BotStorage, timestampLocation *time.Location, websiteLinkTemplate string) *Bot {
+func NewBot(underlxClient *underlxclient.ClientWithResponses, bskyClient *BskyClient, storage *BotStorage, timestampLocation *time.Location, websiteLinkTemplate string, postLangs []string) *Bot {
 	return &Bot{
 		underlxClient:       underlxClient,
 		bskyClient:          bskyClient,
@@ -37,6 +38,7 @@ func NewBot(underlxClient *underlxclient.ClientWithResponses, bskyClient *BskyCl
 		storage:             storage,
 		timestampLocation:   timestampLocation,
 		websiteLinkTemplate: websiteLinkTemplate,
+		postLangs:           postLangs,
 	}
 }
 
@@ -194,6 +196,7 @@ func (b *Bot) sendPostForStatus(ctx context.Context, sentStatuses []KnownStatus,
 	post := bsky.FeedPost{
 		LexiconTypeID: "app.bsky.feed.post",
 		CreatedAt:     lo.FromPtrOr(status.Time, time.Now()).Format(time.RFC3339),
+		Langs:         b.postLangs,
 	}
 
 	if len(sentStatuses) > 0 {

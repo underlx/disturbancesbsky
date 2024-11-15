@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gbl08ma/keybox"
@@ -76,7 +77,12 @@ func main() {
 		log.Fatalln("websiteLinkTemplate secret not found in keybox")
 	}
 
-	bot := NewBot(underlxClient, bskyClient, storage, location, websiteLinkTemplate)
+	postLangs, ok := secrets.Get("postLangs")
+	if !ok {
+		log.Fatalln("postLangs secret not found in keybox")
+	}
+
+	bot := NewBot(underlxClient, bskyClient, storage, location, websiteLinkTemplate, strings.Split(postLangs, ","))
 	for {
 		err = bot.Run(ctx, 10*time.Second, 2*time.Minute)
 		if err != nil {
